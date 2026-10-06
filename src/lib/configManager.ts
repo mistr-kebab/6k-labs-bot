@@ -56,6 +56,14 @@ export function setGuildConfig(guildId: string, guildConfig: GuildConfig): void 
   writeConfig(config);
 }
 
+export function updateGuildConfig(guildId: string, partial: Partial<GuildConfig>): GuildConfig {
+  const config = readConfig();
+  const merged: GuildConfig = { ...(config.guilds[guildId] ?? {}), ...partial };
+  config.guilds[guildId] = merged;
+  writeConfig(config);
+  return merged;
+}
+
 export function addWarning(guildId: string, warning: Warning): Warning {
   const config = readConfig();
   const guild = config.guilds[guildId] ?? {};

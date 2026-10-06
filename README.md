@@ -8,9 +8,9 @@ Modular Discord bot for the 6K Labs community, built with TypeScript and discord
 
 ## Features
 
-- **Honeypot Filter Channel** – Auto-creates a monitored channel. Anyone who writes there gets a DM with the reason plus evidence, then gets banned with a 3-day message purge. Ban count is tracked in the embed footer.
+- **Honeypot Filter Channel** – Auto-creates a monitored channel. Anyone who writes there gets a DM with the reason plus evidence, then gets punished (configurable via `FILTER_ACTION`: `ban` with 3-day message purge, or `timeout` with configurable duration). Punishment count is tracked in the embed footer.
 - **Report System** – Sticky info message plus `/report` modal with text inputs and file upload for evidence (screenshots).
-- **Moderation Commands** – Ban, mute (timeout), warn and kick systems with DMs, embeds and logging.
+- **Moderation Commands** – Ban, mute (timeout), warn and kick systems with DMs, embeds and mod-log posts.
 - **Module System** – Features live in self-contained modules (`src/modules/<Category>/<moduleName>.ts`) and are auto-loaded on startup.
 - **Slash Commands** – Central `CommandManager` registers and dispatches all commands (guild-scoped via `GUILD_ID` for instant updates, global otherwise).
 - **Components v2** – Central `ComponentManager` handles buttons, select menus and modal submissions.
@@ -44,6 +44,9 @@ Targets of ban, mute, warn and kick receive a DM with action, reason, moderator 
 │   │   ├── commandManager.ts       # Slash command registry and dispatcher
 │   │   ├── componentManager.ts     # Buttons, select menus and modal submissions
 │   │   ├── configManager.ts        # Per-guild JSON persistence (channels, bans, warnings)
+│   │   ├── env.ts                  # Validated environment variables (fails fast on missing secrets)
+│   │   ├── modLog.ts               # Posts moderation actions to the mod-log channel
+│   │   ├── reply.ts                # Safe interaction replies (reply vs. follow-up)
 │   │   └── logger.ts               # Colored console logger
 │   └── modules/
 │       ├── filter/
@@ -90,20 +93,27 @@ CLIENT_SECRET=your_client_secret_here
 
 # ----------- Channels -----------
 FILTER_CHANNEL_NAME=filter-channel
+# FILTER_ACTION=ban
+# FILTER_TIMEOUT_MINUTES=1440
 REPORT_CHANNEL_ID=your_report_channel_id
+# MOD_LOG_CHANNEL_ID=your_mod_log_channel_id
 
 # ----------- Development -----------
 # GUILD_ID=your_guild_id_here
 ```
+
+`FILTER_ACTION` is `ban` (default) or `timeout`. `FILTER_TIMEOUT_MINUTES` sets the honeypot timeout duration (default 1440 = 24h, max 40320 = 28d).
 
 Set `GUILD_ID` to register commands instantly on one server. Without it, commands register globally (can take up to an hour to appear).
 
 ### Running
 
 ```bash
-npm run dev    # Development with auto-reload
-npm start      # Production
-npm run build  # Compile TypeScript
+npm run dev    # Development with auto-reload (TypeScript via tsx)
+npm run build  # Compile TypeScript to dist/*.js
+npm start      # Production with plain node (no tsx needed)
+npm run lint   # ESLint
+npm run format # Prettier
 ```
 
 Type-check without starting the bot:

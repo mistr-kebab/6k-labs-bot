@@ -13,10 +13,11 @@ import {
 } from 'discord.js';
 import { ComponentManager } from '../../lib/componentManager';
 import { CommandManager } from '../../lib/commandManager';
-import { getGuildConfig, setGuildConfig } from '../../lib/configManager';
+import { getGuildConfig, updateGuildConfig } from '../../lib/configManager';
 import { logger } from '../../lib/logger';
+import { env } from '../../lib/env';
 
-const REPORT_CHANNEL_ID = process.env.REPORT_CHANNEL_ID ?? '';
+const REPORT_CHANNEL_ID = env.REPORT_CHANNEL_ID;
 const REPORT_MODAL_ID = 'report_modal';
 const REPORT_TEXT_USER = 'report_user';
 const REPORT_TEXT_DESC = 'report_description';
@@ -106,7 +107,7 @@ export function registerModule(client: Client, components: ComponentManager, com
 
     const embed = buildStickyEmbed(client);
     const sent = await textChannel.send({ embeds: [embed] });
-    setGuildConfig(guildId, { ...config, reportStickyMessageId: sent.id });
+    updateGuildConfig(guildId, { reportStickyMessageId: sent.id });
     await updateStickyMention(guildId, sent.id);
   }
 
@@ -141,7 +142,7 @@ export function registerModule(client: Client, components: ComponentManager, com
 
     const embed = buildStickyEmbed(client);
     const sent = await textChannel.send({ embeds: [embed] });
-    setGuildConfig(guildId, { ...config, reportStickyMessageId: sent.id });
+    updateGuildConfig(guildId, { reportStickyMessageId: sent.id });
     logger.info('Report', `Created sticky message in #${textChannel.name} (${guild.name})`);
     await updateStickyMention(guildId, sent.id);
   }

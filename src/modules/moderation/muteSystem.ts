@@ -8,6 +8,8 @@ import {
 import { ComponentManager } from '../../lib/componentManager';
 import { CommandManager } from '../../lib/commandManager';
 import { logger } from '../../lib/logger';
+import { safeReply } from '../../lib/reply';
+import { logModAction } from '../../lib/modLog';
 
 type DurationUnit = 'minutes' | 'hours' | 'days';
 
@@ -131,10 +133,11 @@ export function registerModule(client: Client, _components: ComponentManager, co
           .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
+        await logModAction(interaction.guild, embed);
         logger.info('Mute', `${interaction.user.tag} muted ${user.tag} for ${formattedDuration} (${reason})`);
       } catch (error) {
         logger.error('Mute', `Failed to mute ${user.tag}: ${error}`);
-        await interaction.reply({ content: `Failed to mute **${user.tag}**. ${error}`, ephemeral: true });
+        await safeReply(interaction, { content: `Failed to mute **${user.tag}**. ${error}`, ephemeral: true });
       }
     },
   );
@@ -197,10 +200,11 @@ export function registerModule(client: Client, _components: ComponentManager, co
           .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
+        await logModAction(interaction.guild, embed);
         logger.info('Unmute', `${interaction.user.tag} unmuted ${user.tag} (${reason})`);
       } catch (error) {
         logger.error('Unmute', `Failed to unmute ${user.tag}: ${error}`);
-        await interaction.reply({ content: `Failed to unmute **${user.tag}**. ${error}`, ephemeral: true });
+        await safeReply(interaction, { content: `Failed to unmute **${user.tag}**. ${error}`, ephemeral: true });
       }
     },
   );
@@ -240,7 +244,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         logger.info('Mutes', `${interaction.user.tag} viewed active mutes (${muted.size})`);
       } catch (error) {
         logger.error('Mutes', `Failed to fetch mutes: ${error}`);
-        await interaction.reply({ content: `Failed to fetch mutes. ${error}`, ephemeral: true });
+        await safeReply(interaction, { content: `Failed to fetch mutes. ${error}`, ephemeral: true });
       }
     },
   );

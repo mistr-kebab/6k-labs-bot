@@ -8,6 +8,8 @@ import {
 import { ComponentManager } from '../../lib/componentManager';
 import { CommandManager } from '../../lib/commandManager';
 import { logger } from '../../lib/logger';
+import { safeReply } from '../../lib/reply';
+import { logModAction } from '../../lib/modLog';
 
 export function registerModule(_client: Client, _components: ComponentManager, commands: CommandManager): void {
   commands.register(
@@ -78,10 +80,11 @@ export function registerModule(_client: Client, _components: ComponentManager, c
           .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
+        await logModAction(interaction.guild, embed);
         logger.info('Kick', `${interaction.user.tag} kicked ${user.tag} (${reason})`);
       } catch (error) {
         logger.error('Kick', `Failed to kick ${user.tag}: ${error}`);
-        await interaction.reply({ content: `Failed to kick **${user.tag}**. ${error}`, ephemeral: true });
+        await safeReply(interaction, { content: `Failed to kick **${user.tag}**. ${error}`, ephemeral: true });
       }
     },
   );

@@ -1,10 +1,10 @@
 import {
   Interaction,
   ButtonInteraction,
-  StringSelectMenuInteraction,
   ModalSubmitInteraction,
   AnySelectMenuInteraction,
 } from 'discord.js';
+import { logger } from './logger';
 
 type ButtonHandler = (interaction: ButtonInteraction) => Promise<void>;
 type SelectMenuHandler = (interaction: AnySelectMenuInteraction) => Promise<void>;
@@ -35,32 +35,43 @@ export class ComponentManager {
   }
 
   async handleInteraction(interaction: Interaction): Promise<void> {
-    if (interaction.isButton()) {
-      const handler = this.buttons.get(interaction.customId);
-      if (handler) {
-        await handler(interaction);
-        return;
+    try {
+      if (interaction.isButton()) {
+        const handler = this.buttons.get(interaction.customId);
+        if (handler) {
+          await handler(interaction);
+          return;
+        }
       }
-    }
 
-    if (interaction.isAnySelectMenu()) {
-      const handler = this.selectMenus.get(interaction.customId);
-      if (handler) {
-        await handler(interaction);
-        return;
+      if (interaction.isAnySelectMenu()) {
+        const handler = this.selectMenus.get(interaction.customId);
+        if (handler) {
+          await handler(interaction);
+          return;
+        }
       }
-    }
 
-    if (interaction.isModalSubmit()) {
-      const handler = this.modals.get(interaction.customId);
-      if (handler) {
-        await handler(interaction);
-        return;
+      if (interaction.isModalSubmit()) {
+        const handler = this.modals.get(interaction.customId);
+        if (handler) {
+          await handler(interaction);
+          return;
+        }
       }
-    }
 
-    if (this.defaultHandler) {
-      await this.defaultHandler(interaction);
+      if (this.defaultHandler) {
+        await this.defaultHandler(interaction);
+      }
+    } catch (error) {
+      logger.error('Components', `Error handling interaction: ${error}`);
+      try {
+        if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: 'An error occurred.', ephemeral: true });
+        }
+      } catch {
+        // Interaction expired — nothing we can do
+      }
     }
   }
 }

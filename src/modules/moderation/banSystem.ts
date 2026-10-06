@@ -8,6 +8,8 @@ import {
 import { ComponentManager } from '../../lib/componentManager';
 import { CommandManager } from '../../lib/commandManager';
 import { logger } from '../../lib/logger';
+import { safeReply } from '../../lib/reply';
+import { logModAction } from '../../lib/modLog';
 
 export function registerModule(client: Client, _components: ComponentManager, commands: CommandManager): void {
   commands.register(
@@ -100,10 +102,11 @@ export function registerModule(client: Client, _components: ComponentManager, co
           .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
+        await logModAction(interaction.guild, embed);
         logger.info('Ban', `${interaction.user.tag} banned ${user.tag} (${reason})`);
       } catch (error) {
         logger.error('Ban', `Failed to ban ${user.tag}: ${error}`);
-        await interaction.reply({ content: `Failed to ban **${user.tag}**. ${error}`, ephemeral: true });
+        await safeReply(interaction, { content: `Failed to ban **${user.tag}**. ${error}`, ephemeral: true });
       }
     },
   );
@@ -163,10 +166,11 @@ export function registerModule(client: Client, _components: ComponentManager, co
           .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
+        await logModAction(interaction.guild, embed);
         logger.info('Unban', `${interaction.user.tag} unbanned ${bannedUser.user.tag}`);
       } catch (error) {
         logger.error('Unban', `Failed to unban ${userId}: ${error}`);
-        await interaction.reply({ content: `Failed to unban <@${userId}>. ${error}`, ephemeral: true });
+        await safeReply(interaction, { content: `Failed to unban <@${userId}>. ${error}`, ephemeral: true });
       }
     },
   );
@@ -215,7 +219,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         logger.info('Bans', `${interaction.user.tag} viewed ban list (${bans.size} bans)`);
       } catch (error) {
         logger.error('Bans', `Failed to fetch bans: ${error}`);
-        await interaction.reply({ content: `Failed to fetch bans. ${error}`, ephemeral: true });
+        await safeReply(interaction, { content: `Failed to fetch bans. ${error}`, ephemeral: true });
       }
     },
   );

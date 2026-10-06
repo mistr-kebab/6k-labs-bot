@@ -9,6 +9,7 @@ import { ComponentManager } from '../../lib/componentManager';
 import { CommandManager } from '../../lib/commandManager';
 import { addWarning, removeWarning, getUserWarnings, getAllWarnings } from '../../lib/configManager';
 import { logger } from '../../lib/logger';
+import { logModAction } from '../../lib/modLog';
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -45,7 +46,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         return;
       }
 
-      const warning = addWarning(interaction.guildId!, {
+      addWarning(interaction.guildId!, {
         id: generateId(),
         userId: user.id,
         moderatorId: interaction.user.id,
@@ -84,6 +85,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
+      await logModAction(interaction.guild, embed);
       logger.info('Warn', `${interaction.user.tag} warned ${user.tag} — total: ${totalWarns} (${reason})`);
     },
   );
@@ -127,6 +129,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
+      await logModAction(interaction.guild, embed);
       logger.info('WarnRemove', `${interaction.user.tag} removed warning ${warningId} from ${user.tag}`);
     },
   );

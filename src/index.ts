@@ -1,13 +1,11 @@
 import { Client, GatewayIntentBits, Events, Interaction } from 'discord.js';
-import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { pathToFileURL } from 'url';
 import { ComponentManager } from './lib/componentManager';
 import { CommandManager } from './lib/commandManager';
 import { logger } from './lib/logger';
-
-dotenv.config();
+import { env } from './lib/env';
 
 const client = new Client({
   intents: [
@@ -41,7 +39,7 @@ async function loadModules(): Promise<void> {
     const stat = fs.statSync(categoryPath);
     if (!stat.isDirectory()) continue;
 
-    const files = fs.readdirSync(categoryPath).filter((f) => f.endsWith('.ts'));
+    const files = fs.readdirSync(categoryPath).filter((f) => f.endsWith('.ts') || f.endsWith('.js'));
 
     for (const file of files) {
       const modulePath = path.join(categoryPath, file);
@@ -50,7 +48,7 @@ async function loadModules(): Promise<void> {
         const mod = await import(moduleUrl);
         if (typeof mod.registerModule === 'function') {
           mod.registerModule(client, components, commands);
-          logger.info('Module', `Loaded ${category}/${file.replace('.ts', '')}`);
+          logger.info('Module', `Loaded ${category}/${file.replace(/\.(ts|js)$/, '')}`);
         }
       } catch (error) {
         logger.error('Module', `Failed to load ${category}/${file}: ${error}`);
@@ -62,11 +60,11 @@ async function loadModules(): Promise<void> {
 client.once(Events.ClientReady, async () => {
   logger.info('Bot', `Logged in as ${client.user!.tag}`);
 
-  await commands.registerCommands(client, process.env.GUILD_ID);
+  await commands.registerCommands(client, env.GUILD_ID);
 });
 
 loadModules()
-  .then(() => client.login(process.env.DISCORD_TOKEN))
+  .then(() => client.login(env.DISCORD_TOKEN))
   .catch((error) => {
     logger.error('Bot', `Failed to start: ${error}`);
     process.exit(1);

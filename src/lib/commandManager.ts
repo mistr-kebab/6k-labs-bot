@@ -7,6 +7,8 @@ import {
   SlashCommandSubcommandsOnlyBuilder,
 } from 'discord.js';
 import { logger } from './logger';
+import { env } from './env';
+import { safeReply } from './reply';
 
 type CommandBuilder = SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
 
@@ -26,7 +28,7 @@ export class CommandManager {
   }
 
   async registerCommands(client: Client, guildId?: string): Promise<void> {
-    const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
+    const rest = new REST().setToken(env.DISCORD_TOKEN);
     const bodies = Array.from(this.commands.values()).map((c) => c.builder.toJSON());
 
     try {
@@ -53,10 +55,7 @@ export class CommandManager {
       await command.handler(interaction);
     } catch (error) {
       logger.error('Commands', `Error in /${interaction.commandName}: ${error}`);
-      const reply = interaction.replied || interaction.deferred
-        ? interaction.followUp.bind(interaction)
-        : interaction.reply.bind(interaction);
-      await reply({ content: 'An error occurred while executing this command.', ephemeral: true });
+      await safeReply(interaction, { content: 'An error occurred while executing this command.', ephemeral: true });
     }
   }
 }
