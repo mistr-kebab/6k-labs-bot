@@ -1,11 +1,10 @@
-import { Client, GatewayIntentBits, Events, Interaction } from 'discord.js';
-import path from 'path';
-import fs from 'fs';
-import { pathToFileURL } from 'url';
-import { ComponentManager } from './lib/componentManager';
-import { CommandManager } from './lib/commandManager';
-import { logger } from './lib/logger';
-import { env } from './lib/env';
+const { Client, GatewayIntentBits, Events } = require('discord.js');
+const path = require('path');
+const fs = require('fs');
+const { ComponentManager } = require('./lib/componentManager');
+const { CommandManager } = require('./lib/commandManager');
+const { logger } = require('./lib/logger');
+const { env } = require('./lib/env');
 
 const client = new Client({
   intents: [
@@ -19,7 +18,7 @@ const client = new Client({
 const components = new ComponentManager();
 const commands = new CommandManager();
 
-client.on(Events.InteractionCreate, (interaction: Interaction) => {
+client.on(Events.InteractionCreate, (interaction) => {
   if (interaction.isChatInputCommand()) {
     commands.handleInteraction(interaction);
   } else {
@@ -27,7 +26,7 @@ client.on(Events.InteractionCreate, (interaction: Interaction) => {
   }
 });
 
-async function loadModules(): Promise<void> {
+async function loadModules() {
   const modulesDir = path.resolve(__dirname, 'modules');
 
   if (!fs.existsSync(modulesDir)) return;
@@ -39,16 +38,15 @@ async function loadModules(): Promise<void> {
     const stat = fs.statSync(categoryPath);
     if (!stat.isDirectory()) continue;
 
-    const files = fs.readdirSync(categoryPath).filter((f) => f.endsWith('.ts') || f.endsWith('.js'));
+    const files = fs.readdirSync(categoryPath).filter((f) => f.endsWith('.js'));
 
     for (const file of files) {
       const modulePath = path.join(categoryPath, file);
       try {
-        const moduleUrl = pathToFileURL(modulePath).href;
-        const mod = await import(moduleUrl);
+        const mod = require(modulePath);
         if (typeof mod.registerModule === 'function') {
           mod.registerModule(client, components, commands);
-          logger.info('Module', `Loaded ${category}/${file.replace(/\.(ts|js)$/, '')}`);
+          logger.info('Module', `Loaded ${category}/${file.replace(/\.js$/, '')}`);
         }
       } catch (error) {
         logger.error('Module', `Failed to load ${category}/${file}: ${error}`);
@@ -58,7 +56,7 @@ async function loadModules(): Promise<void> {
 }
 
 client.once(Events.ClientReady, async () => {
-  logger.info('Bot', `Logged in as ${client.user!.tag}`);
+  logger.info('Bot', `Logged in as ${client.user.tag}`);
 
   await commands.registerCommands(client, env.GUILD_ID);
 });
@@ -70,7 +68,7 @@ loadModules()
     process.exit(1);
   });
 
-function shutdown(signal: string): void {
+function shutdown(signal) {
   logger.info('Bot', `Received ${signal}, shutting down...`);
   client.destroy();
   process.exit(0);

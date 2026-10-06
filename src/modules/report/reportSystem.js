@@ -1,21 +1,17 @@
-import {
-  Client,
+const {
   ChannelType,
   EmbedBuilder,
   Events,
-  TextChannel,
   SlashCommandBuilder,
   ModalBuilder,
   LabelBuilder,
   TextInputBuilder,
   TextInputStyle,
   FileUploadBuilder,
-} from 'discord.js';
-import { ComponentManager } from '../../lib/componentManager';
-import { CommandManager } from '../../lib/commandManager';
-import { getGuildConfig, updateGuildConfig } from '../../lib/configManager';
-import { logger } from '../../lib/logger';
-import { env } from '../../lib/env';
+} = require('discord.js');
+const { getGuildConfig, updateGuildConfig } = require('../../lib/configManager');
+const { logger } = require('../../lib/logger');
+const { env } = require('../../lib/env');
 
 const REPORT_CHANNEL_ID = env.REPORT_CHANNEL_ID;
 const REPORT_MODAL_ID = 'report_modal';
@@ -23,50 +19,48 @@ const REPORT_TEXT_USER = 'report_user';
 const REPORT_TEXT_DESC = 'report_description';
 const REPORT_FILE_EVIDENCE = 'report_evidence';
 
-function buildStickyEmbed(client: Client, reportCommandId?: string): EmbedBuilder {
-  const reportText = reportCommandId
-    ? `</report:${reportCommandId}>`
-    : '`/report`';
+function buildStickyEmbed(client, reportCommandId) {
+  const reportText = reportCommandId ? `</report:${reportCommandId}>` : '`/report`';
 
   return new EmbedBuilder()
-    .setAuthor({ name: 'Report System', iconURL: client.user!.displayAvatarURL() })
+    .setAuthor({ name: 'Report System', iconURL: client.user.displayAvatarURL() })
     .setTitle('How to Report Users')
     .setDescription(
       'This channel is for reporting users who contact you **outside the server** ' +
-      "(e.g. via DMs) trying to sell you something, offer you services, " +
-      "or simply won't take no for an answer.\n\n" +
-      `You can also use **${reportText}** — your report will be posted here automatically.\n\n` +
-      '**Information we need:**\n' +
-      '• Evidence (screenshot)\n' +
-      '• User ID\n' +
-      '• User Name',
+        '(e.g. via DMs) trying to sell you something, offer you services, ' +
+        "or simply won't take no for an answer.\n\n" +
+        `You can also use **${reportText}** — your report will be posted here automatically.\n\n` +
+        '**Information we need:**\n' +
+        '• Evidence (screenshot)\n' +
+        '• User ID\n' +
+        '• User Name',
     )
     .setColor(0x5865f2)
     .setFooter({ text: '6K Labs • Report System' });
 }
 
-export function registerModule(client: Client, components: ComponentManager, commands: CommandManager): void {
+function registerModule(client, components, commands) {
   if (!REPORT_CHANNEL_ID) {
     logger.error('Report', 'REPORT_CHANNEL_ID is not set in .env — report module disabled');
     return;
   }
 
-  let stickyTimer: ReturnType<typeof setTimeout> | null = null;
+  let stickyTimer = null;
 
-  async function updateStickyMention(guildId: string, stickyId: string, retries = 5): Promise<void> {
+  async function updateStickyMention(guildId, stickyId, retries = 5) {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return;
 
     const channel = guild.channels.cache.get(REPORT_CHANNEL_ID);
     if (!channel || channel.type !== ChannelType.GuildText) return;
-    const textChannel = channel as TextChannel;
+    const textChannel = channel;
 
     try {
       const guildCmds = await guild.commands.fetch();
       let reportCmd = guildCmds.find((c) => c.name === 'report');
 
       if (!reportCmd) {
-        const globalCmds = await client.application!.commands.fetch();
+        const globalCmds = await client.application.commands.fetch();
         reportCmd = globalCmds.find((c) => c.name === 'report');
       }
 
@@ -86,13 +80,13 @@ export function registerModule(client: Client, components: ComponentManager, com
     }
   }
 
-  async function refreshSticky(guildId: string): Promise<void> {
+  async function refreshSticky(guildId) {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return;
 
     const channel = guild.channels.cache.get(REPORT_CHANNEL_ID);
     if (!channel || channel.type !== ChannelType.GuildText) return;
-    const textChannel = channel as TextChannel;
+    const textChannel = channel;
 
     const config = getGuildConfig(guildId);
 
@@ -111,7 +105,7 @@ export function registerModule(client: Client, components: ComponentManager, com
     await updateStickyMention(guildId, sent.id);
   }
 
-  async function scheduleRefresh(guildId: string): Promise<void> {
+  async function scheduleRefresh(guildId) {
     if (stickyTimer) clearTimeout(stickyTimer);
     stickyTimer = setTimeout(() => {
       refreshSticky(guildId);
@@ -119,13 +113,13 @@ export function registerModule(client: Client, components: ComponentManager, com
     }, 1500);
   }
 
-  async function findOrCreateSticky(guildId: string): Promise<void> {
+  async function findOrCreateSticky(guildId) {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return;
 
     const channel = guild.channels.cache.get(REPORT_CHANNEL_ID);
     if (!channel || channel.type !== ChannelType.GuildText) return;
-    const textChannel = channel as TextChannel;
+    const textChannel = channel;
 
     const config = getGuildConfig(guildId);
 
@@ -167,7 +161,10 @@ export function registerModule(client: Client, components: ComponentManager, com
       .setDescription('Report a user who contacted you outside the server'),
     async (interaction) => {
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -229,7 +226,10 @@ export function registerModule(client: Client, components: ComponentManager, com
 
     const channel = interaction.guild.channels.cache.get(REPORT_CHANNEL_ID);
     if (!channel || channel.type !== ChannelType.GuildText) {
-      await interaction.reply({ content: 'Report channel not found. Please contact staff.', ephemeral: true });
+      await interaction.reply({
+        content: 'Report channel not found. Please contact staff.',
+        ephemeral: true,
+      });
       return;
     }
 
@@ -238,17 +238,26 @@ export function registerModule(client: Client, components: ComponentManager, com
       .setDescription(description)
       .addFields(
         { name: 'Reported User', value: `<@${userId}> (${userId})`, inline: true },
-        { name: 'Reported by', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
+        {
+          name: 'Reported by',
+          value: `${interaction.user.tag} (${interaction.user.id})`,
+          inline: true,
+        },
       )
       .setColor(0xed4245)
       .setTimestamp();
 
     if (evidenceFiles && evidenceFiles.size > 0) {
-      embed.setImage(evidenceFiles.first()!.url);
+      embed.setImage(evidenceFiles.first().url);
     }
 
-    await (channel as TextChannel).send({ embeds: [embed] });
-    await interaction.reply({ content: 'Your report has been submitted. Thank you.', ephemeral: true });
+    await channel.send({ embeds: [embed] });
+    await interaction.reply({
+      content: 'Your report has been submitted. Thank you.',
+      ephemeral: true,
+    });
     logger.info('Report', `${interaction.user.tag} reported user ${userId}`);
   });
 }
+
+module.exports = { registerModule };

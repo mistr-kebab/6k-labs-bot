@@ -1,40 +1,30 @@
-import {
-  Interaction,
-  ButtonInteraction,
-  ModalSubmitInteraction,
-  AnySelectMenuInteraction,
-} from 'discord.js';
-import { logger } from './logger';
+const { logger } = require('./logger');
 
-type ButtonHandler = (interaction: ButtonInteraction) => Promise<void>;
-type SelectMenuHandler = (interaction: AnySelectMenuInteraction) => Promise<void>;
-type ModalHandler = (interaction: ModalSubmitInteraction) => Promise<void>;
+class ComponentManager {
+  constructor() {
+    this.buttons = new Map();
+    this.selectMenus = new Map();
+    this.modals = new Map();
+    this.defaultHandler = null;
+  }
 
-type AllHandler = (interaction: Interaction) => Promise<void>;
-
-export class ComponentManager {
-  private buttons = new Map<string, ButtonHandler>();
-  private selectMenus = new Map<string, SelectMenuHandler>();
-  private modals = new Map<string, ModalHandler>();
-  private defaultHandler: AllHandler | null = null;
-
-  setDefaultHandler(handler: AllHandler): void {
+  setDefaultHandler(handler) {
     this.defaultHandler = handler;
   }
 
-  registerButton(customId: string, handler: ButtonHandler): void {
+  registerButton(customId, handler) {
     this.buttons.set(customId, handler);
   }
 
-  registerSelectMenu(customId: string, handler: SelectMenuHandler): void {
+  registerSelectMenu(customId, handler) {
     this.selectMenus.set(customId, handler);
   }
 
-  registerModal(customId: string, handler: ModalHandler): void {
+  registerModal(customId, handler) {
     this.modals.set(customId, handler);
   }
 
-  async handleInteraction(interaction: Interaction): Promise<void> {
+  async handleInteraction(interaction) {
     try {
       if (interaction.isButton()) {
         const handler = this.buttons.get(interaction.customId);
@@ -75,3 +65,5 @@ export class ComponentManager {
     }
   }
 }
+
+module.exports = { ComponentManager };

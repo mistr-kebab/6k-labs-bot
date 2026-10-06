@@ -1,34 +1,27 @@
-import {
-  Client,
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  ChatInputCommandInteraction,
-  EmbedBuilder,
-} from 'discord.js';
-import { ComponentManager } from '../../lib/componentManager';
-import { CommandManager } from '../../lib/commandManager';
-import { logger } from '../../lib/logger';
-import { safeReply } from '../../lib/reply';
-import { logModAction } from '../../lib/modLog';
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { logger } = require('../../lib/logger');
+const { safeReply } = require('../../lib/reply');
+const { logModAction } = require('../../lib/modLog');
 
-export function registerModule(_client: Client, _components: ComponentManager, commands: CommandManager): void {
+function registerModule(_client, _components, commands) {
   commands.register(
     new SlashCommandBuilder()
       .setName('kick')
       .setDescription('Kick a member from the server')
       .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
-      .addUserOption((o) =>
-        o.setName('user').setDescription('The user to kick').setRequired(true),
-      )
+      .addUserOption((o) => o.setName('user').setDescription('The user to kick').setRequired(true))
       .addStringOption((o) =>
         o.setName('reason').setDescription('Reason for the kick').setRequired(false),
       ),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       const user = interaction.options.getUser('user', true);
       const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -46,7 +39,10 @@ export function registerModule(_client: Client, _components: ComponentManager, c
         const member = await interaction.guild.members.fetch(user.id);
 
         if (!member.kickable) {
-          await interaction.reply({ content: 'I cannot kick that user. They may have higher permissions.', ephemeral: true });
+          await interaction.reply({
+            content: 'I cannot kick that user. They may have higher permissions.',
+            ephemeral: true,
+          });
           return;
         }
 
@@ -84,8 +80,13 @@ export function registerModule(_client: Client, _components: ComponentManager, c
         logger.info('Kick', `${interaction.user.tag} kicked ${user.tag} (${reason})`);
       } catch (error) {
         logger.error('Kick', `Failed to kick ${user.tag}: ${error}`);
-        await safeReply(interaction, { content: `Failed to kick **${user.tag}**. ${error}`, ephemeral: true });
+        await safeReply(interaction, {
+          content: `Failed to kick **${user.tag}**. ${error}`,
+          ephemeral: true,
+        });
       }
     },
   );
 }
+
+module.exports = { registerModule };

@@ -1,20 +1,10 @@
-import {
-  Client,
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  ChatInputCommandInteraction,
-  EmbedBuilder,
-} from 'discord.js';
-import { ComponentManager } from '../../lib/componentManager';
-import { CommandManager } from '../../lib/commandManager';
-import { logger } from '../../lib/logger';
-import { safeReply } from '../../lib/reply';
-import { logModAction } from '../../lib/modLog';
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { logger } = require('../../lib/logger');
+const { safeReply } = require('../../lib/reply');
+const { logModAction } = require('../../lib/modLog');
 
-type DurationUnit = 'minutes' | 'hours' | 'days';
-
-function parseDuration(amount: number, unit: DurationUnit): number {
-  const multipliers: Record<DurationUnit, number> = {
+function parseDuration(amount, unit) {
+  const multipliers = {
     minutes: 60_000,
     hours: 3_600_000,
     days: 86_400_000,
@@ -22,28 +12,26 @@ function parseDuration(amount: number, unit: DurationUnit): number {
   return amount * multipliers[unit];
 }
 
-function formatDuration(ms: number): string {
+function formatDuration(ms) {
   const totalMinutes = Math.floor(ms / 60_000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
 
-  const parts: string[] = [];
+  const parts = [];
   if (days > 0) parts.push(`${days}d`);
   if (hours > 0) parts.push(`${hours}h`);
   if (minutes > 0) parts.push(`${minutes}m`);
   return parts.join(' ') || '0m';
 }
 
-export function registerModule(client: Client, _components: ComponentManager, commands: CommandManager): void {
+function registerModule(client, _components, commands) {
   commands.register(
     new SlashCommandBuilder()
       .setName('mute')
       .setDescription('Timeout a member')
       .setDefaultMemberPermissions(PermissionFlagsBits.MuteMembers)
-      .addUserOption((o) =>
-        o.setName('user').setDescription('The user to mute').setRequired(true),
-      )
+      .addUserOption((o) => o.setName('user').setDescription('The user to mute').setRequired(true))
       .addIntegerOption((o) =>
         o
           .setName('duration')
@@ -65,14 +53,17 @@ export function registerModule(client: Client, _components: ComponentManager, co
       .addStringOption((o) =>
         o.setName('reason').setDescription('Reason for the mute').setRequired(false),
       ),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       const user = interaction.options.getUser('user', true);
       const duration = interaction.options.getInteger('duration', true);
-      const unit = interaction.options.getString('unit', true) as DurationUnit;
+      const unit = interaction.options.getString('unit', true);
       const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -81,7 +72,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         return;
       }
 
-      if (user.id === client.user!.id) {
+      if (user.id === client.user.id) {
         await interaction.reply({ content: 'I cannot mute myself.', ephemeral: true });
         return;
       }
@@ -134,10 +125,16 @@ export function registerModule(client: Client, _components: ComponentManager, co
 
         await interaction.reply({ embeds: [embed] });
         await logModAction(interaction.guild, embed);
-        logger.info('Mute', `${interaction.user.tag} muted ${user.tag} for ${formattedDuration} (${reason})`);
+        logger.info(
+          'Mute',
+          `${interaction.user.tag} muted ${user.tag} for ${formattedDuration} (${reason})`,
+        );
       } catch (error) {
         logger.error('Mute', `Failed to mute ${user.tag}: ${error}`);
-        await safeReply(interaction, { content: `Failed to mute **${user.tag}**. ${error}`, ephemeral: true });
+        await safeReply(interaction, {
+          content: `Failed to mute **${user.tag}**. ${error}`,
+          ephemeral: true,
+        });
       }
     },
   );
@@ -153,12 +150,15 @@ export function registerModule(client: Client, _components: ComponentManager, co
       .addStringOption((o) =>
         o.setName('reason').setDescription('Reason for the unmute').setRequired(false),
       ),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       const user = interaction.options.getUser('user', true);
       const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -204,7 +204,10 @@ export function registerModule(client: Client, _components: ComponentManager, co
         logger.info('Unmute', `${interaction.user.tag} unmuted ${user.tag} (${reason})`);
       } catch (error) {
         logger.error('Unmute', `Failed to unmute ${user.tag}: ${error}`);
-        await safeReply(interaction, { content: `Failed to unmute **${user.tag}**. ${error}`, ephemeral: true });
+        await safeReply(interaction, {
+          content: `Failed to unmute **${user.tag}**. ${error}`,
+          ephemeral: true,
+        });
       }
     },
   );
@@ -214,9 +217,12 @@ export function registerModule(client: Client, _components: ComponentManager, co
       .setName('mutes')
       .setDescription('List all currently muted members')
       .setDefaultMemberPermissions(PermissionFlagsBits.MuteMembers),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -230,7 +236,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         }
 
         const lines = muted.map((m) => {
-          const until = m.communicationDisabledUntil!;
+          const until = m.communicationDisabledUntil;
           return `• **${m.user.tag}** — expires <t:${Math.floor(until.getTime() / 1000)}:R>`;
         });
 
@@ -244,8 +250,13 @@ export function registerModule(client: Client, _components: ComponentManager, co
         logger.info('Mutes', `${interaction.user.tag} viewed active mutes (${muted.size})`);
       } catch (error) {
         logger.error('Mutes', `Failed to fetch mutes: ${error}`);
-        await safeReply(interaction, { content: `Failed to fetch mutes. ${error}`, ephemeral: true });
+        await safeReply(interaction, {
+          content: `Failed to fetch mutes. ${error}`,
+          ephemeral: true,
+        });
       }
     },
   );
 }
+
+module.exports = { registerModule };

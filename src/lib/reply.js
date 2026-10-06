@@ -1,9 +1,4 @@
-import { ChatInputCommandInteraction, InteractionReplyOptions } from 'discord.js';
-
-export async function safeReply(
-  interaction: ChatInputCommandInteraction,
-  options: InteractionReplyOptions,
-): Promise<void> {
+async function safeReply(interaction, options) {
   try {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(options);
@@ -14,3 +9,5 @@ export async function safeReply(
     // Interaction expired or unknown — nothing we can do
   }
 }
+
+module.exports = { safeReply };

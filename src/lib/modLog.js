@@ -1,8 +1,8 @@
-import { ChannelType, EmbedBuilder, Guild } from 'discord.js';
-import { env } from './env';
-import { logger } from './logger';
+const { ChannelType } = require('discord.js');
+const { env } = require('./env');
+const { logger } = require('./logger');
 
-export async function logModAction(guild: Guild, embed: EmbedBuilder): Promise<void> {
+async function logModAction(guild, embed) {
   if (!env.MOD_LOG_CHANNEL_ID) return;
 
   try {
@@ -16,3 +16,5 @@ export async function logModAction(guild: Guild, embed: EmbedBuilder): Promise<v
     logger.error('ModLog', `Failed to send mod log: ${error}`);
   }
 }
+
+module.exports = { logModAction };

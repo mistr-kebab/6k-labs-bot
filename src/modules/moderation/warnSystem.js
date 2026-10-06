@@ -1,38 +1,36 @@
-import {
-  Client,
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  ChatInputCommandInteraction,
-  EmbedBuilder,
-} from 'discord.js';
-import { ComponentManager } from '../../lib/componentManager';
-import { CommandManager } from '../../lib/commandManager';
-import { addWarning, removeWarning, getUserWarnings, getAllWarnings } from '../../lib/configManager';
-import { logger } from '../../lib/logger';
-import { logModAction } from '../../lib/modLog';
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const {
+  addWarning,
+  removeWarning,
+  getUserWarnings,
+  getAllWarnings,
+} = require('../../lib/configManager');
+const { logger } = require('../../lib/logger');
+const { logModAction } = require('../../lib/modLog');
 
-function generateId(): string {
+function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
-export function registerModule(client: Client, _components: ComponentManager, commands: CommandManager): void {
+function registerModule(client, _components, commands) {
   commands.register(
     new SlashCommandBuilder()
       .setName('warn')
       .setDescription('Warn a member')
       .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-      .addUserOption((o) =>
-        o.setName('user').setDescription('The user to warn').setRequired(true),
-      )
+      .addUserOption((o) => o.setName('user').setDescription('The user to warn').setRequired(true))
       .addStringOption((o) =>
         o.setName('reason').setDescription('Reason for the warning').setRequired(false),
       ),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       const user = interaction.options.getUser('user', true);
       const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -41,12 +39,12 @@ export function registerModule(client: Client, _components: ComponentManager, co
         return;
       }
 
-      if (user.id === client.user!.id) {
+      if (user.id === client.user.id) {
         await interaction.reply({ content: 'I cannot warn myself.', ephemeral: true });
         return;
       }
 
-      addWarning(interaction.guildId!, {
+      addWarning(interaction.guildId, {
         id: generateId(),
         userId: user.id,
         moderatorId: interaction.user.id,
@@ -70,7 +68,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         logger.warn('Warn', `Could not send warn DM to ${user.tag}`);
       }
 
-      const totalWarns = getUserWarnings(interaction.guildId!, user.id).length;
+      const totalWarns = getUserWarnings(interaction.guildId, user.id).length;
 
       const embed = new EmbedBuilder()
         .setTitle('User Warned')
@@ -86,7 +84,10 @@ export function registerModule(client: Client, _components: ComponentManager, co
 
       await interaction.reply({ embeds: [embed] });
       await logModAction(interaction.guild, embed);
-      logger.info('Warn', `${interaction.user.tag} warned ${user.tag} — total: ${totalWarns} (${reason})`);
+      logger.info(
+        'Warn',
+        `${interaction.user.tag} warned ${user.tag} — total: ${totalWarns} (${reason})`,
+      );
     },
   );
 
@@ -101,19 +102,25 @@ export function registerModule(client: Client, _components: ComponentManager, co
       .addStringOption((o) =>
         o.setName('warning_id').setDescription('The ID of the warning to remove').setRequired(true),
       ),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       const user = interaction.options.getUser('user', true);
       const warningId = interaction.options.getString('warning_id', true);
 
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
-      const removed = removeWarning(interaction.guildId!, user.id, warningId);
+      const removed = removeWarning(interaction.guildId, user.id, warningId);
 
       if (!removed) {
-        await interaction.reply({ content: 'Warning not found. Use `/warns` to see all warning IDs.', ephemeral: true });
+        await interaction.reply({
+          content: 'Warning not found. Use `/warns` to see all warning IDs.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -130,7 +137,10 @@ export function registerModule(client: Client, _components: ComponentManager, co
 
       await interaction.reply({ embeds: [embed] });
       await logModAction(interaction.guild, embed);
-      logger.info('WarnRemove', `${interaction.user.tag} removed warning ${warningId} from ${user.tag}`);
+      logger.info(
+        'WarnRemove',
+        `${interaction.user.tag} removed warning ${warningId} from ${user.tag}`,
+      );
     },
   );
 
@@ -142,16 +152,19 @@ export function registerModule(client: Client, _components: ComponentManager, co
       .addUserOption((o) =>
         o.setName('user').setDescription('The user to check warnings for').setRequired(false),
       ),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
       const user = interaction.options.getUser('user');
 
       if (user) {
-        const warnings = getUserWarnings(interaction.guildId!, user.id);
+        const warnings = getUserWarnings(interaction.guildId, user.id);
 
         if (warnings.length === 0) {
           await interaction.reply({ content: `**${user.tag}** has no warnings.`, ephemeral: true });
@@ -171,7 +184,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
 
         await interaction.reply({ embeds: [embed] });
       } else {
-        const all = getAllWarnings(interaction.guildId!);
+        const all = getAllWarnings(interaction.guildId);
 
         if (all.length === 0) {
           await interaction.reply({ content: 'No warnings have been issued.', ephemeral: true });
@@ -196,3 +209,5 @@ export function registerModule(client: Client, _components: ComponentManager, co
     },
   );
 }
+
+module.exports = { registerModule };

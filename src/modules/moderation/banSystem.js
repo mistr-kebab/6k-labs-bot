@@ -1,25 +1,15 @@
-import {
-  Client,
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  ChatInputCommandInteraction,
-  EmbedBuilder,
-} from 'discord.js';
-import { ComponentManager } from '../../lib/componentManager';
-import { CommandManager } from '../../lib/commandManager';
-import { logger } from '../../lib/logger';
-import { safeReply } from '../../lib/reply';
-import { logModAction } from '../../lib/modLog';
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { logger } = require('../../lib/logger');
+const { safeReply } = require('../../lib/reply');
+const { logModAction } = require('../../lib/modLog');
 
-export function registerModule(client: Client, _components: ComponentManager, commands: CommandManager): void {
+function registerModule(client, _components, commands) {
   commands.register(
     new SlashCommandBuilder()
       .setName('ban')
       .setDescription('Ban a member from the server')
       .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
-      .addUserOption((o) =>
-        o.setName('user').setDescription('The user to ban').setRequired(true),
-      )
+      .addUserOption((o) => o.setName('user').setDescription('The user to ban').setRequired(true))
       .addStringOption((o) =>
         o.setName('reason').setDescription('Reason for the ban').setRequired(false),
       )
@@ -31,13 +21,16 @@ export function registerModule(client: Client, _components: ComponentManager, co
           .setMinValue(0)
           .setMaxValue(7),
       ),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       const user = interaction.options.getUser('user', true);
       const reason = interaction.options.getString('reason') ?? 'No reason provided';
       const deleteDays = interaction.options.getInteger('delete_days') ?? 0;
 
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -46,7 +39,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
         return;
       }
 
-      if (user.id === client.user!.id) {
+      if (user.id === client.user.id) {
         await interaction.reply({ content: 'I cannot ban myself.', ephemeral: true });
         return;
       }
@@ -60,8 +53,14 @@ export function registerModule(client: Client, _components: ComponentManager, co
           .addFields(
             { name: 'Moderator', value: interaction.user.tag, inline: true },
             { name: 'Reason', value: reason },
-            { name: 'Messages Deleted', value: deleteDays > 0 ? `Last ${deleteDays} day(s)` : 'None' },
-            { name: 'Appeal', value: 'If you believe this was a mistake, please contact the server staff.' },
+            {
+              name: 'Messages Deleted',
+              value: deleteDays > 0 ? `Last ${deleteDays} day(s)` : 'None',
+            },
+            {
+              name: 'Appeal',
+              value: 'If you believe this was a mistake, please contact the server staff.',
+            },
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -79,7 +78,10 @@ export function registerModule(client: Client, _components: ComponentManager, co
           });
         } else {
           if (!member.bannable) {
-            await interaction.reply({ content: 'I cannot ban that user. They may have higher permissions.', ephemeral: true });
+            await interaction.reply({
+              content: 'I cannot ban that user. They may have higher permissions.',
+              ephemeral: true,
+            });
             return;
           }
 
@@ -96,7 +98,10 @@ export function registerModule(client: Client, _components: ComponentManager, co
             { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
             { name: 'Moderator', value: interaction.user.tag, inline: true },
             { name: 'Reason', value: reason },
-            { name: 'Messages Deleted', value: deleteDays > 0 ? `Last ${deleteDays} day(s)` : 'None' },
+            {
+              name: 'Messages Deleted',
+              value: deleteDays > 0 ? `Last ${deleteDays} day(s)` : 'None',
+            },
           )
           .setColor(0xff0000)
           .setTimestamp();
@@ -106,7 +111,10 @@ export function registerModule(client: Client, _components: ComponentManager, co
         logger.info('Ban', `${interaction.user.tag} banned ${user.tag} (${reason})`);
       } catch (error) {
         logger.error('Ban', `Failed to ban ${user.tag}: ${error}`);
-        await safeReply(interaction, { content: `Failed to ban **${user.tag}**. ${error}`, ephemeral: true });
+        await safeReply(interaction, {
+          content: `Failed to ban **${user.tag}**. ${error}`,
+          ephemeral: true,
+        });
       }
     },
   );
@@ -119,11 +127,14 @@ export function registerModule(client: Client, _components: ComponentManager, co
       .addStringOption((o) =>
         o.setName('user_id').setDescription('The ID of the user to unban').setRequired(true),
       ),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       const userId = interaction.options.getString('user_id', true);
 
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -170,7 +181,10 @@ export function registerModule(client: Client, _components: ComponentManager, co
         logger.info('Unban', `${interaction.user.tag} unbanned ${bannedUser.user.tag}`);
       } catch (error) {
         logger.error('Unban', `Failed to unban ${userId}: ${error}`);
-        await safeReply(interaction, { content: `Failed to unban <@${userId}>. ${error}`, ephemeral: true });
+        await safeReply(interaction, {
+          content: `Failed to unban <@${userId}>. ${error}`,
+          ephemeral: true,
+        });
       }
     },
   );
@@ -180,9 +194,12 @@ export function registerModule(client: Client, _components: ComponentManager, co
       .setName('bans')
       .setDescription('List all banned users in the server')
       .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
-    async (interaction: ChatInputCommandInteraction) => {
+    async (interaction) => {
       if (!interaction.guild) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        await interaction.reply({
+          content: 'This command can only be used in a server.',
+          ephemeral: true,
+        });
         return;
       }
 
@@ -194,7 +211,7 @@ export function registerModule(client: Client, _components: ComponentManager, co
           return;
         }
 
-        const pages: string[] = [];
+        const pages = [];
         let page = '';
 
         for (const [, ban] of bans) {
@@ -219,8 +236,13 @@ export function registerModule(client: Client, _components: ComponentManager, co
         logger.info('Bans', `${interaction.user.tag} viewed ban list (${bans.size} bans)`);
       } catch (error) {
         logger.error('Bans', `Failed to fetch bans: ${error}`);
-        await safeReply(interaction, { content: `Failed to fetch bans. ${error}`, ephemeral: true });
+        await safeReply(interaction, {
+          content: `Failed to fetch bans. ${error}`,
+          ephemeral: true,
+        });
       }
     },
   );
 }
+
+module.exports = { registerModule };

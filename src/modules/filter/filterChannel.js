@@ -1,56 +1,50 @@
-import {
-  Client,
+const {
   ChannelType,
   EmbedBuilder,
   AttachmentBuilder,
   Events,
   PermissionFlagsBits,
   TextChannel,
-  Message,
-  Embed,
-} from 'discord.js';
-import { getGuildConfig, updateGuildConfig } from '../../lib/configManager';
-import { ComponentManager } from '../../lib/componentManager';
-import { CommandManager } from '../../lib/commandManager';
-import { logger } from '../../lib/logger';
-import { env } from '../../lib/env';
-import { logModAction } from '../../lib/modLog';
+} = require('discord.js');
+const { getGuildConfig, updateGuildConfig } = require('../../lib/configManager');
+const { logger } = require('../../lib/logger');
+const { env } = require('../../lib/env');
+const { logModAction } = require('../../lib/modLog');
 
 const FILTER_CHANNEL_NAME = env.FILTER_CHANNEL_NAME;
 const HONEYPOT_EMBED_TITLE = 'Honeypot Channel';
 const HONEYPOT_COLOR = 0x2b2d31;
+const FILTER_TIMEOUT_MS = env.FILTER_TIMEOUT_MINUTES * 60_000;
 
-function isTextChannel(channel: unknown): channel is TextChannel {
+function isTextChannel(channel) {
   return channel instanceof TextChannel;
 }
 
-const FILTER_TIMEOUT_MS = env.FILTER_TIMEOUT_MINUTES * 60_000;
-
-function formatTimeout(): string {
+function formatTimeout() {
   const totalMinutes = Math.floor(FILTER_TIMEOUT_MS / 60_000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
 
-  const parts: string[] = [];
+  const parts = [];
   if (days > 0) parts.push(`${days}d`);
   if (hours > 0) parts.push(`${hours}h`);
   if (minutes > 0) parts.push(`${minutes}m`);
   return parts.join(' ') || '0m';
 }
 
-function buildEmbed(client: Client, count: number): EmbedBuilder {
+function buildEmbed(client, count) {
   const isBan = env.FILTER_ACTION === 'ban';
 
   return new EmbedBuilder()
-    .setAuthor({ name: 'Security Measure', iconURL: client.user!.displayAvatarURL() })
+    .setAuthor({ name: 'Security Measure', iconURL: client.user.displayAvatarURL() })
     .setTitle(HONEYPOT_EMBED_TITLE)
     .setDescription(
       'This channel is a **honeypot** and is strictly monitored.\n\n' +
-      (isBan
-        ? 'Sending any message here will result in an **automatic ban** ' +
-          'and **deletion of your messages from the past 3 days**.'
-        : `Sending any message here will result in an **automatic timeout (${formatTimeout()})**.`),
+        (isBan
+          ? 'Sending any message here will result in an **automatic ban** ' +
+            'and **deletion of your messages from the past 3 days**.'
+          : `Sending any message here will result in an **automatic timeout (${formatTimeout()})**.`),
     )
     .addFields(
       {
@@ -73,17 +67,17 @@ function buildEmbed(client: Client, count: number): EmbedBuilder {
     .setColor(HONEYPOT_COLOR)
     .setFooter({
       text: `6K Labs | Successful ${isBan ? 'bans' : 'timeouts'}: ${count}`,
-      iconURL: client.user!.displayAvatarURL(),
+      iconURL: client.user.displayAvatarURL(),
     });
 }
 
-export function registerModule(client: Client, _components: ComponentManager, _commands: CommandManager): void {
+function registerModule(client, _components, _commands) {
   client.on(Events.ClientReady, async () => {
     for (const [guildId, guild] of client.guilds.cache) {
       try {
         const guildConfig = getGuildConfig(guildId);
         const channelId = guildConfig.filterChannelId;
-        let channel: TextChannel | null = null;
+        let channel = null;
 
         if (channelId) {
           try {
@@ -94,7 +88,10 @@ export function registerModule(client: Client, _components: ComponentManager, _c
             }
           } catch {
             channel = null;
-            logger.warn('Filter', `Stored channel ${channelId} not found in ${guild.name}, creating new one`);
+            logger.warn(
+              'Filter',
+              `Stored channel ${channelId} not found in ${guild.name}, creating new one`,
+            );
           }
         }
 
@@ -132,7 +129,10 @@ export function registerModule(client: Client, _components: ComponentManager, _c
         if (existing) {
           await existing.edit({ embeds: [embed] });
           updateGuildConfig(guildId, { embedMessageId: existing.id });
-          logger.info('Filter', `Updated existing honeypot embed in #${channel.name} (${guild.name})`);
+          logger.info(
+            'Filter',
+            `Updated existing honeypot embed in #${channel.name} (${guild.name})`,
+          );
         } else {
           const sent = await channel.send({ embeds: [embed] });
           updateGuildConfig(guildId, { embedMessageId: sent.id });
@@ -148,7 +148,7 @@ export function registerModule(client: Client, _components: ComponentManager, _c
     if (message.author.bot) return;
     if (!message.guild) return;
 
-    const guildConfig = getGuildConfig(message.guildId!);
+    const guildConfig = getGuildConfig(message.guildId);
     if (!guildConfig.filterChannelId) return;
     if (message.channelId !== guildConfig.filterChannelId) return;
 
@@ -156,10 +156,10 @@ export function registerModule(client: Client, _components: ComponentManager, _c
       const evidenceAttachment = new AttachmentBuilder(
         Buffer.from(
           `Message Content: ${message.content}\n` +
-          `Channel: #${(message.channel as TextChannel).name}\n` +
-          `Sent at: ${message.createdAt.toISOString()}\n` +
-          `User ID: ${message.author.id}\n` +
-          `User Tag: ${message.author.tag}`,
+            `Channel: #${message.channel.name}\n` +
+            `Sent at: ${message.createdAt.toISOString()}\n` +
+            `User ID: ${message.author.id}\n` +
+            `User Tag: ${message.author.tag}`,
           'utf-8',
         ),
         { name: 'evidence.txt' },
@@ -172,7 +172,7 @@ export function registerModule(client: Client, _components: ComponentManager, _c
             .setTitle('You have been banned')
             .setDescription(
               `You have been banned from **${message.guild.name}** ` +
-              'for sending a message in the honeypot filter channel.',
+                'for sending a message in the honeypot filter channel.',
             )
             .addFields(
               { name: 'Reason', value: 'Violation of server rules - Honeypot channel' },
@@ -184,7 +184,7 @@ export function registerModule(client: Client, _components: ComponentManager, _c
             .setTitle('You have been timed out')
             .setDescription(
               `You have been timed out in **${message.guild.name}** ` +
-              'for sending a message in the honeypot filter channel.',
+                'for sending a message in the honeypot filter channel.',
             )
             .addFields(
               { name: 'Reason', value: 'Violation of server rules - Honeypot channel' },
@@ -213,15 +213,18 @@ export function registerModule(client: Client, _components: ComponentManager, _c
           logger.error('Filter', `Could not time out ${message.author.tag}: member not found`);
           return;
         }
-        await message.member.timeout(FILTER_TIMEOUT_MS, 'Sent a message in the honeypot filter channel');
+        await message.member.timeout(
+          FILTER_TIMEOUT_MS,
+          'Sent a message in the honeypot filter channel',
+        );
       }
 
-      const newCount = (getGuildConfig(message.guildId!).banCount ?? 0) + 1;
-      updateGuildConfig(message.guildId!, { banCount: newCount });
+      const newCount = (getGuildConfig(message.guildId).banCount ?? 0) + 1;
+      updateGuildConfig(message.guildId, { banCount: newCount });
 
       if (guildConfig.embedMessageId) {
         try {
-          const embedMsg = await (message.channel as TextChannel).messages.fetch(guildConfig.embedMessageId);
+          const embedMsg = await message.channel.messages.fetch(guildConfig.embedMessageId);
           const updatedEmbed = buildEmbed(client, newCount);
           await embedMsg.edit({ embeds: [updatedEmbed] });
         } catch {
@@ -238,28 +241,35 @@ export function registerModule(client: Client, _components: ComponentManager, _c
           { name: 'User', value: `${message.author.tag} (${message.author.id})`, inline: true },
           { name: 'Reason', value: 'Sent a message in the honeypot filter channel' },
           ...(isBan
-            ? [{ name: 'Total Honeypot Bans', value: `${newCount}`, inline: true } as const]
+            ? [{ name: 'Total Honeypot Bans', value: `${newCount}`, inline: true }]
             : [
-                { name: 'Duration', value: formatTimeout(), inline: true } as const,
-                { name: 'Total Honeypot Timeouts', value: `${newCount}`, inline: true } as const,
+                { name: 'Duration', value: formatTimeout(), inline: true },
+                { name: 'Total Honeypot Timeouts', value: `${newCount}`, inline: true },
               ]),
         )
         .setColor(isBan ? 0xff0000 : 0xffa500)
         .setTimestamp();
 
       await logModAction(message.guild, logEmbed);
-      logger.info('Filter', `${isBan ? 'Banned' : 'Timed out'} ${message.author.tag} — total: ${newCount}`);
+      logger.info(
+        'Filter',
+        `${isBan ? 'Banned' : 'Timed out'} ${message.author.tag} — total: ${newCount}`,
+      );
     } catch (error) {
       logger.error('Filter', `Failed to punish ${message.author.tag}: ${error}`);
     }
   });
 }
 
-async function findExistingEmbed(client: Client, channel: TextChannel): Promise<Message | null> {
+async function findExistingEmbed(client, channel) {
   const messages = await channel.messages.fetch({ limit: 50 });
-  return messages.find(
-    (msg: Message) =>
-      msg.author.id === client.user!.id &&
-      msg.embeds.some((e: Embed) => e.title === HONEYPOT_EMBED_TITLE),
-  ) ?? null;
+  return (
+    messages.find(
+      (msg) =>
+        msg.author.id === client.user.id &&
+        msg.embeds.some((e) => e.title === HONEYPOT_EMBED_TITLE),
+    ) ?? null
+  );
 }
+
+module.exports = { registerModule };

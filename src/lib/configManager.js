@@ -1,44 +1,24 @@
-import fs from 'fs';
-import path from 'path';
-
-export interface Warning {
-  id: string;
-  userId: string;
-  moderatorId: string;
-  reason: string;
-  timestamp: number;
-}
-
-export interface GuildConfig {
-  filterChannelId?: string;
-  embedMessageId?: string;
-  banCount?: number;
-  warnings?: Record<string, Warning[]>;
-  reportStickyMessageId?: string;
-}
-
-interface Config {
-  guilds: Record<string, GuildConfig>;
-}
+const fs = require('fs');
+const path = require('path');
 
 const CONFIG_PATH = path.resolve(__dirname, '..', '..', 'config.json');
 
-function readConfig(): Config {
+function readConfig() {
   try {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    return JSON.parse(raw) as Config;
+    return JSON.parse(raw);
   } catch {
-    const defaultConfig: Config = { guilds: {} };
+    const defaultConfig = { guilds: {} };
     writeConfig(defaultConfig);
     return defaultConfig;
   }
 }
 
-function writeConfig(config: Config): void {
+function writeConfig(config) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
 }
 
-export function getGuildConfig(guildId: string): GuildConfig {
+function getGuildConfig(guildId) {
   const config = readConfig();
   const guild = config.guilds[guildId] ?? {};
   return {
@@ -50,21 +30,21 @@ export function getGuildConfig(guildId: string): GuildConfig {
   };
 }
 
-export function setGuildConfig(guildId: string, guildConfig: GuildConfig): void {
+function setGuildConfig(guildId, guildConfig) {
   const config = readConfig();
   config.guilds[guildId] = guildConfig;
   writeConfig(config);
 }
 
-export function updateGuildConfig(guildId: string, partial: Partial<GuildConfig>): GuildConfig {
+function updateGuildConfig(guildId, partial) {
   const config = readConfig();
-  const merged: GuildConfig = { ...(config.guilds[guildId] ?? {}), ...partial };
+  const merged = { ...(config.guilds[guildId] ?? {}), ...partial };
   config.guilds[guildId] = merged;
   writeConfig(config);
   return merged;
 }
 
-export function addWarning(guildId: string, warning: Warning): Warning {
+function addWarning(guildId, warning) {
   const config = readConfig();
   const guild = config.guilds[guildId] ?? {};
   const warnings = guild.warnings ?? {};
@@ -77,7 +57,7 @@ export function addWarning(guildId: string, warning: Warning): Warning {
   return warning;
 }
 
-export function removeWarning(guildId: string, userId: string, warningId: string): Warning | null {
+function removeWarning(guildId, userId, warningId) {
   const config = readConfig();
   const guild = config.guilds[guildId] ?? {};
   const warnings = guild.warnings ?? {};
@@ -96,13 +76,23 @@ export function removeWarning(guildId: string, userId: string, warningId: string
   return removed;
 }
 
-export function getUserWarnings(guildId: string, userId: string): Warning[] {
+function getUserWarnings(guildId, userId) {
   const config = readConfig();
   return config.guilds[guildId]?.warnings?.[userId] ?? [];
 }
 
-export function getAllWarnings(guildId: string): Warning[] {
+function getAllWarnings(guildId) {
   const config = readConfig();
   const warnings = config.guilds[guildId]?.warnings ?? {};
   return Object.values(warnings).flat();
 }
+
+module.exports = {
+  getGuildConfig,
+  setGuildConfig,
+  updateGuildConfig,
+  addWarning,
+  removeWarning,
+  getUserWarnings,
+  getAllWarnings,
+};
